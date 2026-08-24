@@ -16,7 +16,11 @@ export class PaymentsService {
   const payment = await this.repo.save(data);
 
   if (payment.status === 'failed') {
-    await this.recovery.create(payment.id);
+    await this.recovery.create(
+  payment.id,
+  payment.failureReason,
+  payment.amount,
+);
   }
 
   return payment;

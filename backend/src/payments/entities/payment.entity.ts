@@ -13,4 +13,7 @@ export class Payment {
 
   @Column()
   status: string;
+
+  @Column({ nullable: true })
+  failureReason: string;
 }

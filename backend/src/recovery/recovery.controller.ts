@@ -19,4 +19,9 @@ export class RecoveryController {
   retry(@Param('id') id: string) {
     return this.service.retry(id);
   } 
+
+  @Get('priority/:level')
+  findByPriority(@Param('level') level: string) {
+  return this.service.findByPriority(level);
+}
 }

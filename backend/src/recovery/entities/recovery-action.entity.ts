@@ -16,4 +16,10 @@ export class RecoveryAction {
 
   @Column({ type: 'timestamp', nullable: true })
   nextRetryAt: Date | null;
+
+  @Column({ nullable: true })
+  strategy: string;
+
+  @Column({ default: 'low' })
+  priority: string;
 }
