@@ -69,4 +69,19 @@ export class RecoveryService {
   findByPriority(priority: string) {
     return this.repo.find({ where: { priority } });
   }
+  async cancelForPayment(paymentId: string) {
+  const actions = await this.repo.find({
+    where: { paymentId },
+  });
+
+  for (const action of actions) {
+    if (action.status === 'pending' || action.status === 'retrying') {
+      action.status = 'cancelled';
+      action.nextRetryAt = null;
+      await this.repo.save(action);
+    }
+  }
+
+  return { message: 'Recovery cancelled' };
+}
 }

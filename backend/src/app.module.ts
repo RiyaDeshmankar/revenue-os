@@ -4,6 +4,7 @@ import { DatabaseModule } from './database/database.module';
 import { PaymentsModule } from './payments/payments.module';
 import { RecoveryModule } from './recovery/recovery.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     PaymentsModule,
     RecoveryModule,
     ScheduleModule.forRoot(),
+    WebhooksModule,
   ],
 })
 export class AppModule {}

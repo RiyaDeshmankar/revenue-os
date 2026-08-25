@@ -6,10 +6,12 @@ import { PaymentsService } from './payments.service';
 import { RecoveryModule } from '../recovery/recovery.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Payment]),
-             RecoveryModule,
-            ],
+  imports: [
+    TypeOrmModule.forFeature([Payment]),
+    RecoveryModule,
+  ],
   controllers: [PaymentsController],
   providers: [PaymentsService],
+  exports: [PaymentsService],
 })
 export class PaymentsModule {}

@@ -31,4 +31,19 @@ export class PaymentsService {
     where: { status: 'failed' },
   });
 }
+
+async markSuccessful(paymentId: string) {
+  const payment = await this.repo.findOneBy({ id: paymentId });
+
+  if (!payment) {
+    return { message: 'Payment not found' };
+  }
+
+  payment.status = 'success';
+
+  await this.repo.save(payment);
+  await this.recovery.cancelForPayment(paymentId);
+
+  return payment;
+}
 }
