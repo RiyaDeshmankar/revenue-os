@@ -1,14 +1,19 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { RecoveryAction } from './entities/recovery-action.entity';
-import { RecoveryService } from './recovery.service';
 import { RecoveryController } from './recovery.controller';
-import { RetryWorkerService } from './retry-worker.service';
+import { RecoveryService } from './recovery.service';
+import { RecoveryAction } from './entities/recovery-action.entity';
+import { Payment } from '../payments/entities/payment.entity';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([RecoveryAction])],
-    providers: [RecoveryService, RetryWorkerService],
-    exports: [RecoveryService],
-    controllers: [RecoveryController],
+  imports: [
+    TypeOrmModule.forFeature([
+      RecoveryAction,
+      Payment,
+    ]),
+  ],
+  controllers: [RecoveryController],
+  providers: [RecoveryService],
+  exports: [RecoveryService],
 })
 export class RecoveryModule {}

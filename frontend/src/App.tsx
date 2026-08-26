@@ -1,0 +1,218 @@
+import { useEffect, useState } from 'react';
+import './App.css';
+
+type Summary = {
+  revenueAtRisk: number;
+  recovered: number;
+  failedPayments: number;
+  recoveryRate: number;
+};
+
+type Recovery = {
+  id: string;
+  paymentId: string;
+  orderId: string;
+  amount: number;
+  failureReason: string;
+  status: string;
+  retryCount: number;
+  nextRetryAt: string | null;
+  strategy: string | null;
+  priority: string;
+};
+
+function App() {
+  const [summary, setSummary] = useState<Summary | null>(null);
+  const [recoveries, setRecoveries] = useState<Recovery[]>([]);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadDashboard();
+    Promise.all([
+      fetch('http://localhost:3000/dashboard/summary').then((res) =>
+        res.json(),
+      ),
+      fetch('http://localhost:3000/recovery').then((res) =>
+        res.json(),
+      ),
+    ]).then(([summaryData, recoveryData]) => {
+      setSummary(summaryData);
+      setRecoveries(recoveryData);
+    });
+  }, []);
+
+  const loadDashboard = async () => {
+  const [summaryResponse, recoveryResponse] = await Promise.all([
+    fetch('http://localhost:3000/dashboard/summary'),
+    fetch('http://localhost:3000/recovery'),
+  ]);
+
+  const summaryData = await summaryResponse.json();
+  const recoveryData = await recoveryResponse.json();
+
+  setSummary(summaryData);
+  setRecoveries(recoveryData);
+};
+
+const handleRecovery = async (recovery: Recovery) => {
+  try {
+    setLoadingId(recovery.id);
+
+    const response = await fetch(
+      `http://localhost:3000/recovery/${recovery.id}/retry`,
+      {
+        method: 'POST',
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error('Recovery request failed');
+    }
+
+    const updated = await response.json();
+
+    console.log('Recovery updated:', updated);
+
+    await loadDashboard();
+  } catch (error) {
+    console.error('Recovery action failed:', error);
+  } finally {
+    setLoadingId(null);
+  }
+};
+
+
+
+  return (
+    <div className="app">
+
+      <aside className="sidebar">
+        <h2>Revenue OS</h2>
+
+        <nav>
+          <div className="nav-item active">Overview</div>
+          <div className="nav-item">Recovery</div>
+          <div className="nav-item">Payments</div>
+        </nav>
+      </aside>
+
+      <main className="main">
+
+        <header>
+          <div>
+            <h1>Revenue Recovery</h1>
+            <p>Monitor and recover failed payments.</p>
+          </div>
+        </header>
+
+        <section className="stats">
+
+          <div className="card">
+            <span>Revenue at Risk</span>
+            <strong>
+              ₹{summary?.revenueAtRisk?.toLocaleString('en-IN') ?? 0}
+            </strong>
+          </div>
+
+          <div className="card">
+            <span>Recovered</span>
+            <strong>
+              ₹{summary?.recovered?.toLocaleString('en-IN') ?? 0}
+            </strong>
+          </div>
+
+          <div className="card">
+            <span>Failed Payments</span>
+            <strong>
+              {summary?.failedPayments ?? 0}
+            </strong>
+          </div>
+
+          <div className="card">
+            <span>Recovery Rate</span>
+            <strong>
+              {summary?.recoveryRate ?? 0}%
+            </strong>
+          </div>
+
+        </section>
+
+        <section className="recovery-section">
+
+          <h2>Recovery Queue</h2>
+
+          <div className="recovery-list">
+
+            {recoveries.map((recovery) => (
+
+              <div
+                className="recovery-row"
+                key={recovery.id}
+              >
+
+                <div className="payment-info">
+
+                  <strong>
+                    {recovery.orderId}
+                  </strong>
+
+                  <span className="payment-meta">
+                    ₹{recovery.amount.toLocaleString('en-IN')} ·{' '}
+                    {recovery.failureReason.replaceAll('_', ' ')}
+                  </span>
+
+                  <span className="strategy">
+                    {recovery.strategy?.replaceAll('_', ' ') ||
+                      'standard retry'}
+                  </span>
+
+                </div>
+
+                <span
+                  className={`priority ${recovery.priority}`}
+                >
+                  {recovery.priority}
+                </span>
+
+                <span
+                  className={`status ${recovery.status}`}
+                >
+                  {recovery.status.replaceAll('_', ' ')}
+                </span>
+
+                <span className="retry-count">
+                  Retries: {recovery.retryCount}
+                </span>
+                
+
+                {(recovery.status === 'pending' ||
+  recovery.status === 'retrying') && (
+  <button
+    className="action-button"
+    onClick={() => handleRecovery(recovery)}
+    disabled={loadingId === recovery.id}
+  >
+    {loadingId === recovery.id
+      ? 'Processing...'
+      : recovery.status === 'retrying'
+        ? 'Retry Again'
+        : recovery.strategy === 'payment_method_update'
+          ? 'Update Payment Method'
+          : 'Retry Now'}
+  </button>
+)}
+              </div>
+
+            ))}
+
+          </div>
+
+        </section>
+
+      </main>
+
+    </div>
+  );
+}
+
+export default App;

@@ -5,6 +5,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { RecoveryModule } from './recovery/recovery.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { WebhooksModule } from './webhooks/webhooks.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { WebhooksModule } from './webhooks/webhooks.module';
     RecoveryModule,
     ScheduleModule.forRoot(),
     WebhooksModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}
