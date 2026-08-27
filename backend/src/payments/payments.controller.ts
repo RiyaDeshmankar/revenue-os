@@ -7,7 +7,7 @@ export class PaymentsController {
 
   @Get()
   getPayments() {
-    return { message: 'Payments API working' };
+    return this.service.findAll();
   }
 
   @Post()
@@ -16,7 +16,7 @@ export class PaymentsController {
   }
 
   @Get('failed')
-getFailed() {
-  return this.service.findFailed();
-}
+  getFailed() {
+    return this.service.findFailed();
+  }
 }

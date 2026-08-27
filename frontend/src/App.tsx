@@ -21,36 +21,48 @@ type Recovery = {
   priority: string;
 };
 
+type Payment = {
+  id: string;
+  orderId: string;
+  amount: number;
+  status: string;
+  failureReason: string | null;
+};
+
 function App() {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [recoveries, setRecoveries] = useState<Recovery[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [loadingId, setLoadingId] = useState<string | null>(null);
+
   const [activePage, setActivePage] = useState("overview");
   const [statusFilter, setStatusFilter] = useState("all");
-
-  // Load dashboard data
-  const loadDashboard = async () => {
-    try {
-      const [summaryResponse, recoveryResponse] = await Promise.all([
-        fetch("http://localhost:3000/dashboard/summary"),
-        fetch("http://localhost:3000/recovery"),
-      ]);
-
-      const summaryData = await summaryResponse.json();
-      const recoveryData = await recoveryResponse.json();
-
-      setSummary(summaryData);
-      setRecoveries(recoveryData);
-    } catch (error) {
-      console.error("Failed to load dashboard:", error);
-    }
-  };
 
   useEffect(() => {
     loadDashboard();
   }, []);
 
-  // Filter recovery queue
+  const loadDashboard = async () => {
+    try {
+      const [summaryResponse, recoveryResponse, paymentsResponse] =
+        await Promise.all([
+          fetch("http://localhost:3000/dashboard/summary"),
+          fetch("http://localhost:3000/recovery"),
+          fetch("http://localhost:3000/payments"),
+        ]);
+
+      const summaryData = await summaryResponse.json();
+      const recoveryData = await recoveryResponse.json();
+      const paymentsData = await paymentsResponse.json();
+
+      setSummary(summaryData);
+      setRecoveries(recoveryData);
+      setPayments(paymentsData);
+    } catch (error) {
+      console.error("Failed to load dashboard:", error);
+    }
+  };
+
   const filteredRecoveries =
     statusFilter === "all"
       ? recoveries
@@ -58,7 +70,6 @@ function App() {
           (recovery) => recovery.status === statusFilter,
         );
 
-  // Retry / recovery action
   const handleRecovery = async (recovery: Recovery) => {
     try {
       setLoadingId(recovery.id);
@@ -74,11 +85,8 @@ function App() {
         throw new Error("Recovery request failed");
       }
 
-      const updated = await response.json();
+      await response.json();
 
-      console.log("Recovery updated:", updated);
-
-      // Refresh dashboard after retry
       await loadDashboard();
     } catch (error) {
       console.error("Recovery action failed:", error);
@@ -86,6 +94,12 @@ function App() {
       setLoadingId(null);
     }
   };
+
+  const formatAmount = (amount: number) =>
+    `₹${Number(amount).toLocaleString("en-IN")}`;
+
+  const formatText = (text: string | null | undefined) =>
+    text ? text.replaceAll("_", " ") : "Unknown";
 
   return (
     <div className="app">
@@ -123,8 +137,9 @@ function App() {
         </nav>
       </aside>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN */}
       <main className="main">
+        {/* HEADER */}
         <header>
           <div>
             <h1>
@@ -145,124 +160,243 @@ function App() {
           </div>
         </header>
 
-        {/* STATS */}
-        <section className="stats">
-          <div className="card">
-            <span>Revenue at Risk</span>
-            <strong>
-              ₹{summary?.revenueAtRisk?.toLocaleString("en-IN") ?? 0}
-            </strong>
-          </div>
+        {/* ================= OVERVIEW ================= */}
+        {activePage === "overview" && (
+          <>
+            {/* STATS */}
+            <section className="stats">
+              <div className="card">
+                <span>Revenue at Risk</span>
+                <strong>
+                  {formatAmount(summary?.revenueAtRisk ?? 0)}
+                </strong>
+              </div>
 
-          <div className="card">
-            <span>Recovered</span>
-            <strong>
-              ₹{summary?.recovered?.toLocaleString("en-IN") ?? 0}
-            </strong>
-          </div>
+              <div className="card">
+                <span>Recovered</span>
+                <strong>
+                  {formatAmount(summary?.recovered ?? 0)}
+                </strong>
+              </div>
 
-          <div className="card">
-            <span>Failed Payments</span>
-            <strong>{summary?.failedPayments ?? 0}</strong>
-          </div>
+              <div className="card">
+                <span>Failed Payments</span>
+                <strong>
+                  {summary?.failedPayments ?? 0}
+                </strong>
+              </div>
 
-          <div className="card">
-            <span>Recovery Rate</span>
-            <strong>{summary?.recoveryRate ?? 0}%</strong>
-          </div>
-        </section>
+              <div className="card">
+                <span>Recovery Rate</span>
+                <strong>
+                  {summary?.recoveryRate ?? 0}%
+                </strong>
+              </div>
+            </section>
 
-        {/* RECOVERY QUEUE */}
-        <section className="recovery-section">
-          <div className="section-header">
-            <div>
-              <h2>Recovery Queue</h2>
-              <p>Prioritized actions for failed payments</p>
-            </div>
+            {/* SMART INSIGHTS */}
+            <section className="recovery-section">
+              <h2>Smart Recovery Insights</h2>
 
-            {/* FILTER */}
+              <p>
+                Recommended actions based on payment failure
+                patterns.
+              </p>
+
+              <div className="recovery-list">
+                {recoveries
+                  .filter(
+                    (recovery) =>
+                      recovery.status !== "recovered" &&
+                      recovery.status !== "cancelled" &&
+                      recovery.status !== "failed",
+                  )
+                  .map((recovery) => (
+                    <div
+                      className="recovery-row"
+                      key={recovery.id}
+                    >
+                      <div className="payment-info">
+                        <strong>{recovery.orderId}</strong>
+
+                        <span className="payment-meta">
+                          {formatAmount(recovery.amount)} ·{" "}
+                          {formatText(recovery.failureReason)}
+                        </span>
+
+                        <span className="strategy">
+                          Recommended:{" "}
+                          <strong>
+                            {formatText(recovery.strategy)}
+                          </strong>
+                        </span>
+
+                        <span className="strategy">
+                          {recovery.strategy ===
+                          "payment_method_update"
+                            ? "Customer should update their payment method."
+                            : recovery.strategy === "quick_retry"
+                              ? "Retry quickly while the failure is likely temporary."
+                              : recovery.strategy ===
+                                  "delayed_retry"
+                                ? "Wait before retrying to improve recovery probability."
+                                : "Use the standard recovery flow."}
+                        </span>
+                      </div>
+
+                      <span
+                        className={`priority ${recovery.priority}`}
+                      >
+                        {recovery.priority}
+                      </span>
+                    </div>
+                  ))}
+
+                {recoveries.filter(
+                  (recovery) =>
+                    recovery.status !== "recovered" &&
+                    recovery.status !== "cancelled" &&
+                    recovery.status !== "failed",
+                ).length === 0 && (
+                  <div className="empty-state">
+                    No active recovery recommendations.
+                  </div>
+                )}
+              </div>
+            </section>
+          </>
+        )}
+
+        {/* ================= RECOVERY ================= */}
+        {activePage === "recovery" && (
+          <section className="recovery-section">
+            <h2>Recovery Queue</h2>
+
+            <p>Prioritized actions for failed payments.</p>
+
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="status-filter"
+              className="filter"
             >
               <option value="all">All</option>
               <option value="pending">Pending</option>
               <option value="retrying">Retrying</option>
+              <option value="failed">Failed</option>
               <option value="action_required">
                 Action Required
               </option>
-              <option value="failed">Failed</option>
               <option value="cancelled">Cancelled</option>
             </select>
-          </div>
 
-          <div className="recovery-list">
-            {filteredRecoveries.map((recovery) => (
-              <div className="recovery-row" key={recovery.id}>
-                
-                {/* PAYMENT INFO */}
-                <div className="payment-info">
-                  <strong>{recovery.orderId}</strong>
+            <div className="recovery-list">
+              {filteredRecoveries.map((recovery) => (
+                <div
+                  className="recovery-row"
+                  key={recovery.id}
+                >
+                  <div className="payment-info">
+                    <strong>{recovery.orderId}</strong>
 
-                  <span className="payment-meta">
-                    ₹{recovery.amount.toLocaleString("en-IN")} ·{" "}
-                    {recovery.failureReason.replaceAll("_", " ")}
+                    <span className="payment-meta">
+                      {formatAmount(recovery.amount)} ·{" "}
+                      {formatText(recovery.failureReason)}
+                    </span>
+
+                    <span className="strategy">
+                      {formatText(recovery.strategy)}
+                    </span>
+                  </div>
+
+                  <span
+                    className={`priority ${recovery.priority}`}
+                  >
+                    {recovery.priority}
                   </span>
 
-                  <span className="strategy">
-                    {recovery.strategy?.replaceAll("_", " ") ||
-                      "standard retry"}
+                  <span
+                    className={`status ${recovery.status}`}
+                  >
+                    {formatText(recovery.status)}
+                  </span>
+
+                  <span className="retry-count">
+                    Retries: {recovery.retryCount}
+                  </span>
+
+                  {(recovery.status === "pending" ||
+                    recovery.status === "retrying") && (
+                    <button
+                      className="action-button"
+                      onClick={() =>
+                        handleRecovery(recovery)
+                      }
+                      disabled={
+                        loadingId === recovery.id
+                      }
+                    >
+                      {loadingId === recovery.id
+                        ? "Processing..."
+                        : recovery.status === "retrying"
+                          ? "Retry Again"
+                          : "Retry Now"}
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              {filteredRecoveries.length === 0 && (
+                <div className="empty-state">
+                  No recoveries found.
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* ================= PAYMENTS ================= */}
+        {activePage === "payments" && (
+          <section className="recovery-section">
+            <h2>Payment Activity</h2>
+
+            <p>
+              All payments processed through Revenue OS.
+            </p>
+
+            <div className="recovery-list">
+              {payments.map((payment) => (
+                <div
+                  className="recovery-row"
+                  key={payment.id}
+                >
+                  <div className="payment-info">
+                    <strong>{payment.orderId}</strong>
+
+                    <span className="payment-meta">
+                      {formatAmount(payment.amount)}
+                    </span>
+
+                    <span className="strategy">
+                      {formatText(payment.failureReason)}
+                    </span>
+                  </div>
+
+                  <span
+                    className={`status ${payment.status}`}
+                  >
+                    {formatText(payment.status)}
                   </span>
                 </div>
+              ))}
 
-                {/* PRIORITY */}
-                <span
-                  className={`priority ${recovery.priority}`}
-                >
-                  {recovery.priority}
-                </span>
-
-                {/* STATUS */}
-                <span
-                  className={`status ${recovery.status}`}
-                >
-                  {recovery.status.replaceAll("_", " ")}
-                </span>
-
-                {/* RETRIES */}
-                <span className="retry-count">
-                  Retries: {recovery.retryCount}
-                </span>
-
-                {/* ACTION BUTTON */}
-                {(recovery.status === "pending" ||
-                  recovery.status === "retrying") && (
-                  <button
-                    className="action-button"
-                    onClick={() => handleRecovery(recovery)}
-                    disabled={loadingId === recovery.id}
-                  >
-                    {loadingId === recovery.id
-                      ? "Processing..."
-                      : recovery.status === "retrying"
-                        ? "Retry Again"
-                        : recovery.strategy ===
-                            "payment_method_update"
-                          ? "Update Payment Method"
-                          : "Retry Now"}
-                  </button>
-                )}
-              </div>
-            ))}
-
-            {filteredRecoveries.length === 0 && (
-              <div className="empty-state">
-                No recovery actions found.
-              </div>
-            )}
-          </div>
-        </section>
+              {payments.length === 0 && (
+                <div className="empty-state">
+                  No payments found.
+                </div>
+              )}
+            </div>
+          </section>
+        )}
       </main>
     </div>
   );
