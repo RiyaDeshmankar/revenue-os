@@ -22,4 +22,13 @@ export class RecoveryAction {
 
   @Column({ default: 'low' })
   priority: string;
+
+  @Column({ default: 0 })
+recoveryScore: number;
+
+@Column({ default: 0 })
+confidence: number;
+
+@Column({ nullable: true })
+reason: string;
 }

@@ -411,4 +411,11 @@ header p {
   .recovery-row {
     grid-template-columns: 1fr;
   }
+
+}
+.scheduled-label {
+  font-size: 14px;
+  color: #64748b;
+  font-weight: 600;
+  white-space: nowrap;
 }

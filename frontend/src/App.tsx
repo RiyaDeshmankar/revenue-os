@@ -66,9 +66,7 @@ function App() {
   const filteredRecoveries =
     statusFilter === "all"
       ? recoveries
-      : recoveries.filter(
-          (recovery) => recovery.status === statusFilter,
-        );
+      : recoveries.filter((recovery) => recovery.status === statusFilter);
 
   const handleRecovery = async (recovery: Recovery) => {
     try {
@@ -109,27 +107,21 @@ function App() {
 
         <nav>
           <div
-            className={`nav-item ${
-              activePage === "overview" ? "active" : ""
-            }`}
+            className={`nav-item ${activePage === "overview" ? "active" : ""}`}
             onClick={() => setActivePage("overview")}
           >
             Overview
           </div>
 
           <div
-            className={`nav-item ${
-              activePage === "recovery" ? "active" : ""
-            }`}
+            className={`nav-item ${activePage === "recovery" ? "active" : ""}`}
             onClick={() => setActivePage("recovery")}
           >
             Recovery
           </div>
 
           <div
-            className={`nav-item ${
-              activePage === "payments" ? "active" : ""
-            }`}
+            className={`nav-item ${activePage === "payments" ? "active" : ""}`}
             onClick={() => setActivePage("payments")}
           >
             Payments
@@ -167,30 +159,22 @@ function App() {
             <section className="stats">
               <div className="card">
                 <span>Revenue at Risk</span>
-                <strong>
-                  {formatAmount(summary?.revenueAtRisk ?? 0)}
-                </strong>
+                <strong>{formatAmount(summary?.revenueAtRisk ?? 0)}</strong>
               </div>
 
               <div className="card">
                 <span>Recovered</span>
-                <strong>
-                  {formatAmount(summary?.recovered ?? 0)}
-                </strong>
+                <strong>{formatAmount(summary?.recovered ?? 0)}</strong>
               </div>
 
               <div className="card">
                 <span>Failed Payments</span>
-                <strong>
-                  {summary?.failedPayments ?? 0}
-                </strong>
+                <strong>{summary?.failedPayments ?? 0}</strong>
               </div>
 
               <div className="card">
                 <span>Recovery Rate</span>
-                <strong>
-                  {summary?.recoveryRate ?? 0}%
-                </strong>
+                <strong>{summary?.recoveryRate ?? 0}%</strong>
               </div>
             </section>
 
@@ -198,10 +182,7 @@ function App() {
             <section className="recovery-section">
               <h2>Smart Recovery Insights</h2>
 
-              <p>
-                Recommended actions based on payment failure
-                patterns.
-              </p>
+              <p>Recommended actions based on payment failure patterns.</p>
 
               <div className="recovery-list">
                 {recoveries
@@ -212,10 +193,7 @@ function App() {
                       recovery.status !== "failed",
                   )
                   .map((recovery) => (
-                    <div
-                      className="recovery-row"
-                      key={recovery.id}
-                    >
+                    <div className="recovery-row" key={recovery.id}>
                       <div className="payment-info">
                         <strong>{recovery.orderId}</strong>
 
@@ -226,27 +204,21 @@ function App() {
 
                         <span className="strategy">
                           Recommended:{" "}
-                          <strong>
-                            {formatText(recovery.strategy)}
-                          </strong>
+                          <strong>{formatText(recovery.strategy)}</strong>
                         </span>
 
                         <span className="strategy">
-                          {recovery.strategy ===
-                          "payment_method_update"
+                          {recovery.strategy === "payment_method_update"
                             ? "Customer should update their payment method."
                             : recovery.strategy === "quick_retry"
                               ? "Retry quickly while the failure is likely temporary."
-                              : recovery.strategy ===
-                                  "delayed_retry"
+                              : recovery.strategy === "delayed_retry"
                                 ? "Wait before retrying to improve recovery probability."
                                 : "Use the standard recovery flow."}
                         </span>
                       </div>
 
-                      <span
-                        className={`priority ${recovery.priority}`}
-                      >
+                      <span className={`priority ${recovery.priority}`}>
                         {recovery.priority}
                       </span>
                     </div>
@@ -283,18 +255,13 @@ function App() {
               <option value="pending">Pending</option>
               <option value="retrying">Retrying</option>
               <option value="failed">Failed</option>
-              <option value="action_required">
-                Action Required
-              </option>
+              <option value="action_required">Action Required</option>
               <option value="cancelled">Cancelled</option>
             </select>
 
             <div className="recovery-list">
               {filteredRecoveries.map((recovery) => (
-                <div
-                  className="recovery-row"
-                  key={recovery.id}
-                >
+                <div className="recovery-row" key={recovery.id}>
                   <div className="payment-info">
                     <strong>{recovery.orderId}</strong>
 
@@ -308,15 +275,11 @@ function App() {
                     </span>
                   </div>
 
-                  <span
-                    className={`priority ${recovery.priority}`}
-                  >
+                  <span className={`priority ${recovery.priority}`}>
                     {recovery.priority}
                   </span>
 
-                  <span
-                    className={`status ${recovery.status}`}
-                  >
+                  <span className={`status ${recovery.status}`}>
                     {formatText(recovery.status)}
                   </span>
 
@@ -324,31 +287,26 @@ function App() {
                     Retries: {recovery.retryCount}
                   </span>
 
-                  {(recovery.status === "pending" ||
-                    recovery.status === "retrying") && (
+                  {recovery.status === "pending" && (
                     <button
                       className="action-button"
-                      onClick={() =>
-                        handleRecovery(recovery)
-                      }
-                      disabled={
-                        loadingId === recovery.id
-                      }
+                      onClick={() => handleRecovery(recovery)}
+                      disabled={loadingId === recovery.id}
                     >
                       {loadingId === recovery.id
                         ? "Processing..."
-                        : recovery.status === "retrying"
-                          ? "Retry Again"
-                          : "Retry Now"}
+                        : "Retry Now"}
                     </button>
+                  )}
+
+                  {recovery.status === "retrying" && (
+                    <span className="scheduled-label">Scheduled</span>
                   )}
                 </div>
               ))}
 
               {filteredRecoveries.length === 0 && (
-                <div className="empty-state">
-                  No recoveries found.
-                </div>
+                <div className="empty-state">No recoveries found.</div>
               )}
             </div>
           </section>
@@ -359,16 +317,11 @@ function App() {
           <section className="recovery-section">
             <h2>Payment Activity</h2>
 
-            <p>
-              All payments processed through Revenue OS.
-            </p>
+            <p>All payments processed through Revenue OS.</p>
 
             <div className="recovery-list">
               {payments.map((payment) => (
-                <div
-                  className="recovery-row"
-                  key={payment.id}
-                >
+                <div className="recovery-row" key={payment.id}>
                   <div className="payment-info">
                     <strong>{payment.orderId}</strong>
 
@@ -381,18 +334,14 @@ function App() {
                     </span>
                   </div>
 
-                  <span
-                    className={`status ${payment.status}`}
-                  >
+                  <span className={`status ${payment.status}`}>
                     {formatText(payment.status)}
                   </span>
                 </div>
               ))}
 
               {payments.length === 0 && (
-                <div className="empty-state">
-                  No payments found.
-                </div>
+                <div className="empty-state">No payments found.</div>
               )}
             </div>
           </section>
