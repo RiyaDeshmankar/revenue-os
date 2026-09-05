@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
 
 @Controller('payments')
@@ -18,5 +18,10 @@ export class PaymentsController {
   @Get('failed')
   getFailed() {
     return this.service.findFailed();
+  }
+
+  @Post(':id/success')
+  markSuccessful(@Param('id') id: string) {
+    return this.service.markSuccessful(id);
   }
 }

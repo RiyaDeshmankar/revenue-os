@@ -15,49 +15,84 @@ export class DashboardService {
   ) {}
 
   async getSummary() {
-    const payments = await this.paymentRepo.find();
-    const recoveries = await this.recoveryRepo.find();
+  const payments = await this.paymentRepo.find();
+  const recoveries = await this.recoveryRepo.find();
 
-    const failedPayments = payments.filter(
-      (payment) => payment.status === 'failed',
-    );
+  // Failed payments
+  const failedPayments = payments.filter(
+    (payment) => payment.status === 'failed',
+  );
 
-    const recoveredPayments = payments.filter(
-      (payment) => payment.status === 'success',
-    );
+  // Payments currently undergoing recovery
+  const activeRecoveryIds = new Set(
+    recoveries
+      .filter(
+        (recovery) =>
+          recovery.status === 'pending' ||
+          recovery.status === 'retrying' ||
+          recovery.status === 'action_required',
+      )
+      .map((recovery) => recovery.paymentId),
+  );
 
-    const activeRecoveryIds = new Set(
-      recoveries
-        .filter(
-          (recovery) =>
-            recovery.status === 'pending' ||
-            recovery.status === 'retrying' ||
-            recovery.status === 'action_required',
-        )
-        .map((recovery) => recovery.paymentId),
-    );
-
-    const revenueAtRisk = failedPayments
-      .filter((payment) => activeRecoveryIds.has(payment.id))
-      .reduce((sum, payment) => sum + Number(payment.amount), 0);
-
-    const recovered = recoveredPayments.reduce(
+  const revenueAtRisk = failedPayments
+    .filter((payment) => activeRecoveryIds.has(payment.id))
+    .reduce(
       (sum, payment) => sum + Number(payment.amount),
       0,
     );
 
-    const recoveryRate =
-      recovered + revenueAtRisk > 0
-        ? Number(
-            ((recovered / (recovered + revenueAtRisk)) * 100).toFixed(2),
-          )
-        : 0;
+  // Successfully recovered payments
+  const recoveredPaymentIds = new Set(
+    recoveries
+      .filter((recovery) => recovery.status === 'recovered')
+      .map((recovery) => recovery.paymentId),
+  );
 
-    return {
-      revenueAtRisk,
-      recovered,
-      failedPayments: failedPayments.length,
-      recoveryRate,
-    };
+  const recovered = payments
+    .filter((payment) => recoveredPaymentIds.has(payment.id))
+    .reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0,
+    );
+
+  // Failed recovery attempts
+  const failedRecoveryIds = new Set(
+    recoveries
+      .filter((recovery) => recovery.status === 'failed')
+      .map((recovery) => recovery.paymentId),
+  );
+
+  const failedRecoveryAmount = failedPayments
+    .filter((payment) => failedRecoveryIds.has(payment.id))
+    .reduce(
+      (sum, payment) => sum + Number(payment.amount),
+      0,
+    );
+
+  // Recovery rate
+  const totalRecoveryPool =
+    recovered +
+    revenueAtRisk +
+    failedRecoveryAmount;
+
+  const recoveryRate =
+    totalRecoveryPool > 0
+      ? Number(
+          (
+            (recovered / totalRecoveryPool) *
+            100
+          ).toFixed(2),
+        )
+      : 0;
+
+  return {
+    revenueAtRisk,
+    recovered,
+    failedPayments: failedPayments.length,
+    recoveryRate,
+    failedRecoveryAmount,
+  };
+
   }
 }

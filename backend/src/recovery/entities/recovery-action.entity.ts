@@ -24,11 +24,18 @@ export class RecoveryAction {
   priority: string;
 
   @Column({ default: 0 })
-recoveryScore: number;
+  recoveryScore: number;
 
-@Column({ default: 0 })
-confidence: number;
+  @Column({ default: 0 })
+  confidence: number;
 
-@Column({ nullable: true })
-reason: string;
+  @Column({ nullable: true })
+  reason: string;
+
+  @Column({ type: 'jsonb', default: [] })
+  history: {
+    action: string;
+    timestamp: string;
+    result?: string;
+  }[];
 }

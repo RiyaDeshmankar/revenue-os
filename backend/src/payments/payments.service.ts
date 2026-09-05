@@ -28,11 +28,7 @@ export class PaymentsService {
   }
 
   findAll() {
-    return this.repo.find({
-      order: {
-        id: 'DESC',
-      },
-    });
+    return this.repo.find();
   }
 
   findFailed() {
@@ -42,17 +38,19 @@ export class PaymentsService {
   }
 
   async markSuccessful(paymentId: string) {
-    const payment = await this.repo.findOneBy({ id: paymentId });
+  const payment = await this.repo.findOneBy({
+    id: paymentId,
+  });
 
-    if (!payment) {
-      return { message: 'Payment not found' };
-    }
-
-    payment.status = 'success';
-
-    await this.repo.save(payment);
-    await this.recovery.cancelForPayment(paymentId);
-
-    return payment;
+  if (!payment) {
+    return { message: 'Payment not found' };
   }
+
+  payment.status = 'success';
+
+  await this.repo.save(payment);
+
+  await this.recovery.recoverForPayment(paymentId);
+  return payment;
+}
 }
